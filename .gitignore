@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtualenv
+venv/
+ENV/
+
+# Environment files
+.env
+.venv
+env/
+venv/
+
+# Chrome driver
+chromedriver.exe
+
+# Datos sensibles
+credentials.json
+secrets.ini
+
+# Archivos de datos grandes
+*.csv
+*.json
+*.xlsx
