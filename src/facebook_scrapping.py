@@ -9,18 +9,25 @@ import hashlib
 import re
 import os
 
+# Ruta absoluta del archivo de publicaciones
+ARCHIVO_PUBLICACIONES = r'C:\Users\richi\tecnm-facebook-scraper\src\publicaciones_tec.txt'
+
 def crear_hash(texto):
     """Crea un hash MD5 único para el texto"""
     texto_limpio = re.sub(r'\s+', ' ', texto).strip()
     return hashlib.md5(texto_limpio.encode('utf-8')).hexdigest()
 
 def iniciar_navegador():
-    """Configura e inicia el navegador Chrome"""
+    """Configura e inicia el navegador Chrome en modo headless"""
     service = Service(r'C:/Users/richi/Downloads/chromedriver.exe')
     options = webdriver.ChromeOptions()
+    options.add_argument("--headless")  # Modo sin interfaz gráfica
+    options.add_argument("--disable-gpu")  # Deshabilitar GPU para headless
+    options.add_argument("--no-sandbox")  # Necesario para algunos entornos Linux
+    options.add_argument("--disable-dev-shm-usage")  # Para evitar problemas de memoria
     options.add_argument("--disable-notifications")
     options.add_argument("--disable-popup-blocking")
-    options.add_argument("--start-maximized")
+    options.add_argument("--window-size=1920,1080")  # Tamaño de ventana fijo para consistencia
     return webdriver.Chrome(service=service, options=options)
 
 def cerrar_popups(driver):
@@ -223,7 +230,7 @@ def extraer_publicaciones(driver, max_publicaciones=10, timeout=60):
     
     return publicaciones
 
-def guardar_publicaciones(publicaciones, archivo="publicaciones_tec.txt"):
+def guardar_publicaciones(publicaciones, archivo=ARCHIVO_PUBLICACIONES):
     """Guarda las publicaciones en un archivo de texto, evitando duplicados"""
     # Leer publicaciones existentes si el archivo existe
     publicaciones_existentes = set()
@@ -254,6 +261,7 @@ def ejecutar_scraping(user, password, max_publicaciones=10):
     driver = None
     try:
         driver = iniciar_navegador()
+        driver.set_page_load_timeout(300)
         print("🚀 Iniciando proceso de extracción de publicaciones...")
 
         # 1. Iniciar sesión en Facebook

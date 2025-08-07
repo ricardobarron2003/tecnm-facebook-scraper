@@ -22,7 +22,7 @@ class ChatbotTecNM:
         self.embeddings = None
         self.last_update = None
         self.load_publications()
-     
+    
     def run_scraping(self):
         """Ejecuta el script de scraping"""
         print(f"\n🔄 Ejecutando {SCRAPING_SCRIPT}...")
