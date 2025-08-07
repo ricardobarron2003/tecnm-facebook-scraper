@@ -1,3 +1,4 @@
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -10,7 +11,7 @@ import re
 import os
 
 # Ruta absoluta del archivo de publicaciones
-ARCHIVO_PUBLICACIONES = r'C:\Users\richi\tecnm-facebook-scraper\src\publicaciones_tec.txt'
+ARCHIVO_PUBLICACIONES = os.path.join(os.path.dirname(__file__), 'publicaciones_tec.txt')
 
 def crear_hash(texto):
     """Crea un hash MD5 único para el texto"""
@@ -19,16 +20,27 @@ def crear_hash(texto):
 
 def iniciar_navegador():
     """Configura e inicia el navegador Chrome en modo headless"""
-    service = Service(r'C:/Users/richi/Downloads/chromedriver.exe')
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Modo sin interfaz gráfica
-    options.add_argument("--disable-gpu")  # Deshabilitar GPU para headless
-    options.add_argument("--no-sandbox")  # Necesario para algunos entornos Linux
-    options.add_argument("--disable-dev-shm-usage")  # Para evitar problemas de memoria
+    from selenium.webdriver.chrome.options import Options
+    
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-notifications")
     options.add_argument("--disable-popup-blocking")
-    options.add_argument("--window-size=1920,1080")  # Tamaño de ventana fijo para consistencia
-    return webdriver.Chrome(service=service, options=options)
+    options.add_argument("--window-size=1920,1080")
+    
+    # Para Render (usando chromedriver-autoinstaller)
+    try:
+        import chromedriver_autoinstaller
+        chromedriver_autoinstaller.install()
+        return webdriver.Chrome(options=options)
+    except:
+        # Fallback para desarrollo local
+        from selenium.webdriver.chrome.service import Service
+        service = Service('chromedriver')  # Asume que chromedriver está en PATH
+        return webdriver.Chrome(service=service, options=options)
 
 def cerrar_popups(driver):
     """Función para cerrar popups emergentes"""
@@ -320,8 +332,8 @@ def ejecutar_scraping(user, password, max_publicaciones=10):
 
 if __name__ == "__main__":
     # Credenciales (deberías considerar usar variables de entorno para mayor seguridad)
-    FACEBOOK_USER = "4772304137"
-    FACEBOOK_PASSWORD = "pinto23"
+    FACEBOOK_USER = os.getenv('FACEBOOK_USER')
+    FACEBOOK_PASSWORD = os.getenv('FACEBOOK_PASSWORD')
     
     # Ejecutar el scraping
     ejecutar_scraping(FACEBOOK_USER, FACEBOOK_PASSWORD)

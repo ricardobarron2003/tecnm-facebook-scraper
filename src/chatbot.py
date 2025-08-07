@@ -8,9 +8,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configuración
-SCRAPING_SCRIPT = "facebook_scrapping.py"
-PUBLICACIONES_FILE = r'C:\Users\richi\tecnm-facebook-scraper\src\publicaciones_tec.txt'
+SCRAPING_SCRIPT = os.path.join(os.path.dirname(__file__), "facebook_scrapping.py")
+PUBLICACIONES_FILE = os.path.join(os.path.dirname(__file__), "publicaciones_tec.txt")
 UPDATE_INTERVAL = 3600  # 1 hora en segundos
 MODEL_NAME = 'paraphrase-multilingual-MiniLM-L12-v2'  # Modelo multilingüe
 
