@@ -1,3 +1,4 @@
+
 import subprocess
 import time
 from datetime import datetime
@@ -11,16 +12,21 @@ warnings.filterwarnings('ignore')
 SCRAPING_SCRIPT = os.path.join(os.path.dirname(__file__), "facebook_scrapping.py")
 PUBLICACIONES_FILE = os.path.join(os.path.dirname(__file__), "publicaciones_tec.txt")
 UPDATE_INTERVAL = 3600  # 1 hora en segundos
-MODEL_NAME = 'paraphrase-multilingual-MiniLM-L12-v2'  # Modelo multilingüe
+MODEL_NAME = 'paraphrase-TinyBERT-L6-v2'
 
 class ChatbotTecNM:
     def __init__(self):
-        # Cargar modelo de embeddings
-        self.model = SentenceTransformer(MODEL_NAME)
+        self.model = None  # Carga diferida
         self.publicaciones = []
-        self.embeddings = None
-        self.last_update = None
-        self.load_publications()
+        self.embeddings = None  # Inicializado
+        self.last_update = None  # Inicializado
+        self.load_model()  # Cargar modelo al iniciar
+        self.load_publications()  # Cargar publicaciones al iniciar
+    
+    def load_model(self):
+        if self.model is None:
+            from sentence_transformers import SentenceTransformer
+            self.model = SentenceTransformer(MODEL_NAME)
     
     def run_scraping(self):
         """Ejecuta el script de scraping"""
@@ -67,7 +73,7 @@ class ChatbotTecNM:
     
     def find_most_relevant(self, query, top_k=3):
         """Encuentra las publicaciones más relevantes a la consulta"""
-        if not self.publicaciones:
+        if not self.publicaciones or self.embeddings is None:
             return []
         
         # Calcular embedding para la consulta
@@ -85,7 +91,7 @@ class ChatbotTecNM:
         """Genera una respuesta a la consulta del usuario"""
         self.check_for_updates()
         
-        if not self.publicaciones:
+        if not self.publicaciones or self.embeddings is None:
             return "No hay publicaciones disponibles. Por favor intenta más tarde."
         
         relevant_pubs = self.find_most_relevant(query)

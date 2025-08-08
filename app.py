@@ -1,25 +1,23 @@
 from flask import Flask, request, jsonify
-from chatbot import ChatbotTecNM
 from dotenv import load_dotenv
 import os
 
+# Carga mínima inicial
 load_dotenv()
-
 app = Flask(__name__)
-chatbot = ChatbotTecNM()
+
+# Carga diferida del chatbot solo cuando sea necesario
+def get_chatbot():
+    from chatbot import ChatbotTecNM
+    return ChatbotTecNM()
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    chatbot = get_chatbot()  # Se carga solo al recibir peticiones
     data = request.json
-    query = data.get('query', '')
-    response = chatbot.generate_response(query)
+    response = chatbot.generate_response(data.get('query', ''))
     return jsonify({"response": response})
 
-@app.route('/update', methods=['POST'])
-def update_publications():
-    success = chatbot.run_scraping()
-    return jsonify({"success": success, "message": "Publicaciones actualizadas" if success else "Error al actualizar"})
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # <-- Usa PORT de las variables de entorno
-    app.run(host='0.0.0.0', port=port)       # <-- Es crucial '0.0.0.0' para Render
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
