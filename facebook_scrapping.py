@@ -332,8 +332,8 @@ def ejecutar_scraping(user, password, max_publicaciones=10):
 
 if __name__ == "__main__":
     # Credenciales (deberías considerar usar variables de entorno para mayor seguridad)
-    FACEBOOK_USER = os.getenv('FACEBOOK_USER')
-    FACEBOOK_PASSWORD = os.getenv('FACEBOOK_PASSWORD')
+    FACEBOOK_USER = "4772304137"
+    FACEBOOK_PASSWORD = "pinto23"
     
     # Ejecutar el scraping
     ejecutar_scraping(FACEBOOK_USER, FACEBOOK_PASSWORD)

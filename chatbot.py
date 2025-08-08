@@ -90,25 +90,30 @@ class ChatbotTecNM:
     def generate_response(self, query):
         """Genera una respuesta a la consulta del usuario"""
         self.check_for_updates()
-        
+
         if not self.publicaciones or self.embeddings is None:
             return "No hay publicaciones disponibles. Por favor intenta más tarde."
-        
-        relevant_pubs = self.find_most_relevant(query)
-        
+
+        relevant_pubs = self.find_most_relevant(query, top_k=2)
+
         if not relevant_pubs:
             return "No encontré información relevante sobre ese tema en las publicaciones recientes."
-        
-        response = ["🔍 Encontré estas publicaciones relevantes sobre tu consulta:"]
-        
-        for i, (pub, score) in enumerate(relevant_pubs, 1):
-            # Acortar la publicación si es muy larga
-            shortened_pub = pub if len(pub) <= 300 else pub[:300] + "..."
-            response.append(f"\n📌 Publicación {i} (relevancia: {score:.2f}):\n{shortened_pub}")
-        
-        response.append("\n¿Te gustaría más información sobre alguna en particular?")
-        
-        return "\n".join(response)
+
+        response_lines = []
+
+        # Primera publicación (la más relevante)
+        pub1, score1 = relevant_pubs[0]
+        response_lines.append("🔍 Este es el resultado más acorde a tu pregunta: \n")
+        response_lines.append(pub1)
+
+        # Segunda publicación (opcional)
+        if len(relevant_pubs) > 1:
+            pub2, score2 = relevant_pubs[1]
+            response_lines.append("\n\n\n... Relacionado con tu búsqueda...")
+            response_lines.append(pub2)
+
+        return "\n\n".join(response_lines)
+
     
     def run_chat(self):
         """Ejecuta el chatbot en modo interactivo"""
