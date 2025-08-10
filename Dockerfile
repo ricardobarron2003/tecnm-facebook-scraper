@@ -4,6 +4,14 @@ FROM python:3.10-slim
 # Establece el directorio de trabajo
 WORKDIR /app
 
+# Instala las dependencias del sistema necesarias para Selenium
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    wget \
+    chromium \
+    chromium-driver && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copia los archivos necesarios
 COPY . .
 
