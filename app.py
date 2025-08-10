@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template_string
 import os
 import logging
+import time
 
 app = Flask(__name__)
 
@@ -8,6 +9,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# HTML (se mantiene igual)
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="es">
@@ -175,29 +177,58 @@ def index():
 
 # Carga el chatbot una vez al iniciar (singleton)
 chatbot = None
+chatbot_ready = False
 
 def get_chatbot():
-    global chatbot
+    global chatbot, chatbot_ready
     if chatbot is None:
-        from chatbot import ChatbotTecNM
-        chatbot = ChatbotTecNM()
-    return chatbot
+        try:
+            logger.info("Intentando cargar el chatbot...")
+            start_time = time.time()
+            from chatbot import ChatbotTecNM
+            chatbot = ChatbotTecNM()
+            load_time = time.time() - start_time
+            logger.info(f"Chatbot cargado exitosamente en {load_time:.2f} segundos")
+            chatbot_ready = True
+        except Exception as e:
+            logger.error(f"Error al cargar el chatbot: {str(e)}")
+            chatbot_ready = False
+    return chatbot if chatbot_ready else None
+
+@app.route('/status')
+def status():
+    bot = get_chatbot()
+    if bot is None:
+        return jsonify({"status": "error", "message": "Chatbot no pudo ser cargado"}), 500
+    return jsonify({"status": "ok", "message": "Chatbot listo"})
 
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
+        # Verificar si el chatbot está listo
+        bot = get_chatbot()
+        if bot is None:
+            logger.error("Chatbot no está disponible")
+            return jsonify({"error": "Chatbot no está disponible"}), 503
+            
         data = request.get_json()
         if not data or 'query' not in data:
             return jsonify({"error": "Formato inválido"}), 400
             
-        bot = get_chatbot()
+        logger.info(f"Procesando consulta: {data['query']}")
+        start_time = time.time()
         response = bot.generate_response(data['query'])
+        process_time = time.time() - start_time
+        logger.info(f"Consulta procesada en {process_time:.2f} segundos")
+        
         return jsonify({"response": response})
         
     except Exception as e:
-        logger.error(f"Error en /chat: {str(e)}")
+        logger.error(f"Error en /chat: {str(e)}", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    # Precargar el chatbot al iniciar
+    get_chatbot()
     app.run(host='0.0.0.0', port=port)
