@@ -1,27 +1,28 @@
-# Usa una imagen base ligera con Python 3.10
-FROM python:3.10-slim
+# Usa una imagen base más ligera
+FROM python:3.10-alpine
 
-# Establece el directorio de trabajo
+# Instala solo dependencias esenciales
+RUN apk add --no-cache --virtual .build-deps gcc musl-dev libffi-dev && \
+    apk add --no-cache libstdc++
+
 WORKDIR /app
 
-# Instala las dependencias del sistema necesarias para Selenium
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    wget \
-    chromium \
-    chromium-driver && \
-    rm -rf /var/lib/apt/lists/*
+# Instala pip dependencies primero para aprovechar caché de Docker
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    apk del .build-deps  # Elimina dependencias de compilación
 
-# Copia los archivos necesarios
-COPY . .
+# Copia solo los archivos necesarios
+COPY app.py .
+COPY chatbot.py .
+COPY publicaciones_tec.txt .
 
-# Instala las dependencias de Python
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Configura las variables de entorno
-ENV PYTHONUNBUFFERED=1
+# Configura variables de entorno
+ENV PYTHONUNBUILD=1
 ENV PORT=10000
-ENV DISPLAY=:99
 
-# Comando para ejecutar la aplicación
+# Usa un usuario no root para mayor seguridad
+RUN adduser -D myuser
+USER myuser
+
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000", "--timeout", "120", "--workers", "1"]

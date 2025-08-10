@@ -3,13 +3,7 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
-import logging
-
 warnings.filterwarnings('ignore')
-
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Configuración optimizada
 PUBLICACIONES_FILE = os.path.join(os.path.dirname(__file__), "publicaciones_tec.txt")
@@ -18,59 +12,43 @@ MAX_PUBLICATIONS = 50   # Límite de publicaciones a procesar
 
 class ChatbotTecNM:
     def __init__(self):
-        logger.info("Inicializando ChatbotTecNM...")
         self.model = self.load_model()
         self.publicaciones = []
         self.embeddings = None
         self.last_update = None
         self.load_publications()
-        logger.info("ChatbotTecNM inicializado correctamente")
     
     def load_model(self):
         """Carga un modelo optimizado con manejo de errores"""
-        logger.info("Cargando modelo de embeddings...")
+        from sentence_transformers import SentenceTransformer
         try:
-            from sentence_transformers import SentenceTransformer
-            # Modelo más ligero para producción
-            model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', device='cpu')
-            logger.info("Modelo cargado exitosamente")
-            return model
+            return SentenceTransformer('sentence-transformers/all-MiniLM-L4-v2', device='cpu')
         except Exception as e:
-            logger.error(f"Error cargando modelo: {str(e)}")
-            raise
+            print(f"⚠️ Error cargando modelo: {str(e)}")
+            return SentenceTransformer('paraphrase-MiniLM-L3-v2', device='cpu')
     
     def load_publications(self):
         """Carga optimizada de publicaciones"""
-        logger.info(f"Intentando cargar publicaciones desde: {PUBLICACIONES_FILE}")
         try:
             if not os.path.exists(PUBLICACIONES_FILE):
-                logger.error(f"Archivo no encontrado: {PUBLICACIONES_FILE}")
-                raise FileNotFoundError(f"Archivo de publicaciones no encontrado: {PUBLICACIONES_FILE}")
+                print("⚠️ Archivo de publicaciones no encontrado")
+                return
             
             with open(PUBLICACIONES_FILE, 'r', encoding='utf-8') as f:
                 self.publicaciones = [line.strip() for line in f if line.strip()][-MAX_PUBLICATIONS:]
             
-            if not self.publicaciones:
-                logger.warning("Archivo de publicaciones está vacío")
-                return
+            if self.publicaciones:
+                print(f"📖 Cargadas {len(self.publicaciones)} publicaciones")
+                # Procesar en lotes para ahorrar memoria
+                batch_size = 10
+                embeddings = []
+                for i in range(0, len(self.publicaciones), batch_size):
+                    embeddings.append(self.model.encode(self.publicaciones[i:i+batch_size]))
+                self.embeddings = np.concatenate(embeddings)
             
-            logger.info(f"Cargadas {len(self.publicaciones)} publicaciones")
-            
-            # Procesar en lotes para ahorrar memoria
-            batch_size = 10
-            embeddings = []
-            for i in range(0, len(self.publicaciones), batch_size):
-                batch = self.publicaciones[i:i+batch_size]
-                logger.debug(f"Procesando lote {i//batch_size + 1}/{(len(self.publicaciones)-1)//batch_size + 1}")
-                embeddings.append(self.model.encode(batch))
-            
-            self.embeddings = np.concatenate(embeddings)
             self.last_update = datetime.now()
-            logger.info("Embeddings de publicaciones generados exitosamente")
-            
         except Exception as e:
-            logger.error(f"Error cargando publicaciones: {str(e)}")
-            raise
+            print(f"⚠️ Error cargando publicaciones: {str(e)}")
     
     def get_top_publications(self, query, top_k=2):
         """Obtiene las publicaciones más relevantes"""
@@ -82,14 +60,12 @@ class ChatbotTecNM:
             top_indices = np.argsort(similarities)[-top_k:][::-1]
             return [(self.publicaciones[i], similarities[i]) for i in top_indices]
         except Exception as e:
-            logger.error(f"Error buscando publicaciones: {str(e)}")
+            print(f"⚠️ Error buscando publicaciones: {str(e)}")
             return []
     
     def generate_response(self, query):
         """Genera respuesta con la publicación principal y una sugerencia"""
         try:
-            logger.info(f"Generando respuesta para: '{query}'")
-            
             if not self.publicaciones:
                 return "No hay publicaciones disponibles. Por favor intenta más tarde."
             
@@ -114,5 +90,5 @@ class ChatbotTecNM:
             return "\n\n".join(response)
             
         except Exception as e:
-            logger.error(f"Error generando respuesta: {str(e)}")
+            print(f"⚠️ Error generando respuesta: {str(e)}")
             return "Disculpa, ocurrió un error al procesar tu solicitud."
