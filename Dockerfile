@@ -1,28 +1,19 @@
-# Usa una imagen base más ligera
-FROM python:3.10-alpine
+# Usa una imagen base ligera con Python 3.10
+FROM python:3.10-slim
 
-# Instala solo dependencias esenciales
-RUN apk add --no-cache --virtual .build-deps gcc musl-dev libffi-dev && \
-    apk add --no-cache libstdc++
-
+# Establece el directorio de trabajo
 WORKDIR /app
 
-# Instala pip dependencies primero para aprovechar caché de Docker
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps  # Elimina dependencias de compilación
+# Copia los archivos necesarios
+COPY . .
 
-# Copia solo los archivos necesarios
-COPY app.py .
-COPY chatbot.py .
-COPY publicaciones_tec.txt .
+# Instala las dependencias de Python
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Configura variables de entorno
-ENV PYTHONUNBUILD=1
+# Configura las variables de entorno
+ENV PYTHONUNBUFFERED=1
 ENV PORT=10000
+ENV DISPLAY=:99
 
-# Usa un usuario no root para mayor seguridad
-RUN adduser -D myuser
-USER myuser
-
+# Comando para ejecutar la aplicación
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000", "--timeout", "120", "--workers", "1"]
