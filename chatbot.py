@@ -1,13 +1,14 @@
 import os
 import numpy as np
 from datetime import datetime
-from sklearn.metrics.pairwise import cosine_similarity
 import warnings
+import math
+from collections import Counter
+
 warnings.filterwarnings('ignore')
 
 # Configuración optimizada
 PUBLICACIONES_FILE = os.path.join(os.path.dirname(__file__), "publicaciones_tec.txt")
-UPDATE_INTERVAL = 3600  # 1 hora en segundos
 MAX_PUBLICATIONS = 50   # Límite de publicaciones a procesar
 
 class ChatbotTecNM:
@@ -22,10 +23,14 @@ class ChatbotTecNM:
         """Carga un modelo optimizado con manejo de errores"""
         from sentence_transformers import SentenceTransformer
         try:
-            return SentenceTransformer('sentence-transformers/all-MiniLM-L4-v2', device='cpu')
+            model = SentenceTransformer('sentence-transformers/all-MiniLM-L4-v2', device='cpu')
+            model.max_seq_length = 128  # Reducir tamaño para ahorrar memoria
+            return model
         except Exception as e:
             print(f"⚠️ Error cargando modelo: {str(e)}")
-            return SentenceTransformer('paraphrase-MiniLM-L3-v2', device='cpu')
+            model = SentenceTransformer('paraphrase-MiniLM-L3-v2', device='cpu')
+            model.max_seq_length = 128
+            return model
     
     def load_publications(self):
         """Carga optimizada de publicaciones"""
@@ -50,13 +55,25 @@ class ChatbotTecNM:
         except Exception as e:
             print(f"⚠️ Error cargando publicaciones: {str(e)}")
     
+    def cosine_similarity(self, a, b):
+        """Implementación manual de similitud coseno"""
+        dot_product = np.dot(a, b)
+        norm_a = np.linalg.norm(a)
+        norm_b = np.linalg.norm(b)
+        return dot_product / (norm_a * norm_b) if norm_a != 0 and norm_b != 0 else 0
+    
     def get_top_publications(self, query, top_k=2):
         """Obtiene las publicaciones más relevantes"""
         try:
-            query_embedding = self.model.encode([query])
-            similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+            query_embedding = self.model.encode([query])[0]  # Obtenemos el primer (y único) embedding
+            
+            # Calcular similitudes manualmente
+            similarities = []
+            for pub_embedding in self.embeddings:
+                similarities.append(self.cosine_similarity(query_embedding, pub_embedding))
             
             # Obtener los índices de las top_k publicaciones más relevantes
+            similarities = np.array(similarities)
             top_indices = np.argsort(similarities)[-top_k:][::-1]
             return [(self.publicaciones[i], similarities[i]) for i in top_indices]
         except Exception as e:
