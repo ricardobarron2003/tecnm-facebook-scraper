@@ -9,66 +9,114 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# HTML (se mantiene igual)
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Chatbot TecNM</title>
+    <title>Pregúntale a TecBot</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f2f2f2;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1b396a;
+            color: white;
         }
+        
+        h2 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
         #chatbox {
             width: 100%;
             max-width: 600px;
-            margin: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
+            margin: 0 auto 20px;
+            border: 1px solid #2a4a7a;
+            border-radius: 8px;
+            padding: 15px;
             background: white;
             height: 400px;
             overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+        
         .user {
             text-align: right;
-            color: blue;
+            margin: 10px 0;
+            padding: 10px 15px;
+            background-color: #e3f2fd;
+            border-radius: 18px 18px 0 18px;
+            color: #0d47a1;
+            display: inline-block;
+            max-width: 80%;
+            word-wrap: break-word;
         }
+        
         .bot {
             text-align: left;
-            color: green;
+            margin: 10px 0;
+            padding: 10px 15px;
+            background-color: #f1f1f1;
+            border-radius: 18px 18px 18px 0;
+            color: #333;
+            display: inline-block;
+            max-width: 80%;
+            word-wrap: break-word;
         }
+        
         #inputSection {
             display: flex;
             max-width: 600px;
-            margin: 10px auto;
+            margin: 0 auto;
+            gap: 10px;
         }
+        
         input[type="text"] {
             flex: 1;
-            padding: 10px;
+            padding: 12px 15px;
             font-size: 1em;
+            border: 1px solid #2a4a7a;
+            border-radius: 6px;
+            background-color: white;
+            color: #333;
         }
+        
         button {
-            padding: 10px;
+            padding: 12px 25px;
             font-size: 1em;
+            background-color: #2a4a7a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
         }
-        .disabled {
-            opacity: 0.6;
+        
+        button:hover {
+            background-color: #1c355e;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
             cursor: not-allowed;
         }
+        
         #timer {
             text-align: center;
-            margin-top: 5px;
-            color: #666;
+            margin-top: 10px;
+            color: #a0c4ff;
             font-size: 0.9em;
         }
     </style>
 </head>
 <body>
 
-    <h2 style="text-align: center;">Chatbot TecNM</h2>
+    <h2>Pregúntale a TecBot</h2>
 
     <div id="chatbox"></div>
 
@@ -80,8 +128,17 @@ HTML_PAGE = """
 
     <script>
         let isWaiting = false;
-        let countdown = 0;
+        let countdown = localStorage.getItem('chatbotCountdown') ? parseInt(localStorage.getItem('chatbotCountdown')) : 0;
         const WAIT_TIME = 20; // 20 segundos de espera
+
+        // Verificar si hay un contador activo al cargar la página
+        window.onload = function() {
+            if (countdown > 0) {
+                isWaiting = true;
+                disableInput();
+                startCountdown();
+            }
+        };
 
         function appendMessage(text, className) {
             const div = document.createElement('div');
@@ -91,26 +148,34 @@ HTML_PAGE = """
             document.getElementById('chatbox').scrollTop = document.getElementById('chatbox').scrollHeight;
         }
 
+        function startCountdown() {
+            const interval = setInterval(() => {
+                countdown--;
+                localStorage.setItem('chatbotCountdown', countdown);
+                updateTimer();
+                
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    enableInput();
+                    localStorage.removeItem('chatbotCountdown');
+                }
+            }, 1000);
+        }
+
         function disableInput() {
             const input = document.getElementById('userInput');
             const button = document.getElementById('sendButton');
             input.disabled = true;
             button.disabled = true;
-            input.classList.add('disabled');
-            button.classList.add('disabled');
             isWaiting = true;
+            
+            // Guardar el estado en localStorage
+            localStorage.setItem('chatbotCountdown', countdown);
             
             // Iniciar cuenta regresiva
             countdown = WAIT_TIME;
             updateTimer();
-            const interval = setInterval(() => {
-                countdown--;
-                updateTimer();
-                if (countdown <= 0) {
-                    clearInterval(interval);
-                    enableInput();
-                }
-            }, 1000);
+            startCountdown();
         }
 
         function enableInput() {
@@ -118,10 +183,9 @@ HTML_PAGE = """
             const button = document.getElementById('sendButton');
             input.disabled = false;
             button.disabled = false;
-            input.classList.remove('disabled');
-            button.classList.remove('disabled');
             document.getElementById('timer').textContent = '';
             isWaiting = false;
+            localStorage.removeItem('chatbotCountdown');
         }
 
         function updateTimer() {
@@ -156,7 +220,7 @@ HTML_PAGE = """
             } catch (error) {
                 appendMessage("Bot: Error al contactar con el chatbot.", 'bot');
                 console.error(error);
-                enableInput(); // Habilitar de nuevo si hay error
+                enableInput();
             }
         }
 
